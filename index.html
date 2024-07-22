@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Game</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        console.log('Starting script');
+
+        // Basic scene setup
+        const scene = new THREE.Scene();
+        console.log('Scene created');
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        console.log('Renderer and camera set up');
+
+        // Controls setup
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 1, 0);
+        controls.update();
+
+        // Camera position
+        camera.position.set(0, 2, 5);
+        console.log('Controls and camera position set');
+
+        // Light setup
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(1, 1, 1).normalize();
+        scene.add(light);
+
+        console.log('Light added to scene');
+
+        // Loader setup
+        const loader = new THREE.FBXLoader();
+
+        console.log('Attempting to load map');
+
+        // Load the map model
+        loader.load('assets/models/map1/bb4ccfc3b167Aforestscenewit.fbx', function (map) {
+            console.log('Map loaded');
+            map.traverse(function (child) {
+                if (child.isMesh) {
+                    console.log('Applying texture to child mesh');
+                    const mapMaterial = new THREE.MeshStandardMaterial({
+                        map: new THREE.TextureLoader().load('assets/models/map1/bb4ccfc3b167Aforestscenewitrgb.jpg'),
+                        metalnessMap: new THREE.TextureLoader().load('assets/models/map1/bb4ccfc3b167Aforestscenewitmetallic.jpg'),
+                        roughnessMap: new THREE.TextureLoader().load('assets/models/map1/bb4ccfc3b167Aforestscenewitroughness.jpg')
+                    });
+                    child.material = mapMaterial;
+                }
+            });
+            scene.add(map);
+
+            console.log('Attempting to load character');
+
+            // Load the character model
+            loader.load('assets/models/character1/0deb218a94e4apenguinmanclot.fbx', function (character) {
+                console.log('Character loaded');
+                character.traverse(function (child) {
+                    if (child.isMesh) {
+                        const charMaterial = new THREE.MeshStandardMaterial({
+                            map: new THREE.TextureLoader().load('assets/models/character1/0deb218a94e4apenguinmanclotrgb.jpg'),
+                            metalnessMap: new THREE.TextureLoader().load('assets/models/character1/0deb218a94e4apenguinmanclotmetallic.jpg'),
+                            roughnessMap: new THREE.TextureLoader().load('assets/models/character1/0deb218a94e4apenguinmanclotroughness.jpg')
+                        });
+                        child.material = charMaterial;
+                    }
+                });
+
+                // Position the character in the center of the map
+                character.position.set(0, 0, 0);
+                const mapBoundingBox = new THREE.Box3().setFromObject(map);
+                const mapCenter = mapBoundingBox.getCenter(new THREE.Vector3());
+
+                character.position.y = mapBoundingBox.max.y - mapBoundingBox.min.y / 2;
+                character.position.x = mapCenter.x;
+                character.position.z = mapCenter.z;
+
+                scene.add(character);
+
+                // Update the animation in the render loop
+                const clock = new THREE.Clock();
+                function animate() {
+                    requestAnimationFrame(animate);
+                    const delta = clock.getDelta();
+                    renderer.render(scene, camera);
+                }
+                animate();
+            }, undefined, function (error) {
+                console.error('Error loading character:', error);
+            });
+
+        }, undefined, function (error) {
+            console.error('Error loading map:', error);
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
